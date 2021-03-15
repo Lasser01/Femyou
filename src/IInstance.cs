@@ -5,14 +5,15 @@ namespace Femyou {
 	public interface IInstance : IDisposable {
 		string Name { get; }
 		double CurrentTime { get; }
+		double StopTime { get; }
 		double ReadReal(IVariable variable);
 		int ReadInteger(IVariable variable);
 		bool ReadBoolean(IVariable variable);
 		string ReadString(IVariable variable);
-		void WriteReal((IVariable, double) variable);
-		void WriteInteger((IVariable, int) variable);
-		void WriteBoolean((IVariable, bool) variable);
-		void WriteString((IVariable, string) variable);
+		void WriteReal(IVariable variable, double value);
+		void WriteInteger(IVariable variable, int value);
+		void WriteBoolean(IVariable variable, bool value);
+		void WriteString(IVariable variable, string value);
 		IEnumerable<double> ReadReal(IEnumerable<IVariable> variables);
 		IEnumerable<int> ReadInteger(IEnumerable<IVariable> variables);
 		IEnumerable<bool> ReadBoolean(IEnumerable<IVariable> variables);
@@ -21,8 +22,9 @@ namespace Femyou {
 		void WriteInteger(IEnumerable<(IVariable, int)> variables);
 		void WriteBoolean(IEnumerable<(IVariable, bool)> variables);
 		void WriteString(IEnumerable<(IVariable, string)> variables);
-		void StartTime(double time);
+		void StartTime(double time = 0, double stopTime = 0);
 		void AdvanceTime(double time);
+		void Simulate(double stepSize = 0.1, Action onStep = null);
 	}
 
 	public static class ExtensionsIInstance {

@@ -59,11 +59,35 @@ namespace BouncingBallGif {
 			using IInstance instance = model.CreateCoSimulationInstance("instance1", new ConsoleCallbacks());
 			Console.WriteLine("Created an instance of the model!");
 			IVariable velocity = model.Variables["v"];
+			instance.WriteReal(velocity, 10);
 
 			Console.WriteLine($"v = {instance.ReadReal(velocity)} at time: {instance.CurrentTime}");
-			instance.StartTime(0.0);
+			instance.StartTime();
 			instance.AdvanceTime(1f);
+			Console.WriteLine($"v = {instance.ReadReal(velocity)} at time: {instance.CurrentTime}");
+			instance.AdvanceTime(1f);
+			Console.WriteLine($"v = {instance.ReadReal(velocity)} at time: {instance.CurrentTime}");
+		}
 
+		internal static void DoSimStepping() {
+			string path = Path.Combine(
+				Tools.GetBaseFolder(new Uri(Assembly.GetExecutingAssembly().CodeBase).AbsolutePath,
+					nameof(Femyou)), "FMU", "bin", "dist");
+			using IModel model = Model.Load($"{path}/BouncingBall.fmu");
+			Console.WriteLine("Loaded the model!");
+			using IInstance instance = model.CreateCoSimulationInstance("instance1", new ConsoleCallbacks());
+			Console.WriteLine("Created an instance of the model!");
+
+			IVariable velocity = model.Variables["v"];
+			instance.WriteReal(velocity, 10);
+
+			Console.WriteLine($"v = {instance.ReadReal(velocity)} at time: {instance.CurrentTime}");
+
+			instance.StartTime(stopTime: 7.23);
+			instance.AdvanceTime(1f);
+			Console.WriteLine($"v = {instance.ReadReal(velocity)} at time: {instance.CurrentTime}");
+			instance.Simulate(onStep: () =>
+				Console.WriteLine($"v = {instance.ReadReal(velocity)} at time: {instance.CurrentTime}"));
 			Console.WriteLine($"v = {instance.ReadReal(velocity)} at time: {instance.CurrentTime}");
 		}
 	}

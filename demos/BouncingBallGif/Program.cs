@@ -20,6 +20,9 @@ namespace BouncingBallGif {
 			Console.WriteLine("Simple Stepping Example");
 			ExampleDemo.DoStepping();
 			Console.WriteLine("Simple Stepping over\n\n\n\n");
+			Console.WriteLine("Simple Sim Stepping Example");
+			ExampleDemo.DoSimStepping();
+			Console.WriteLine("Simple Sim Stepping over\n\n\n\n");
 		}
 	}
 }

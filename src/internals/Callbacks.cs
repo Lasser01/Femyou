@@ -4,7 +4,7 @@ using Femyou.fmi;
 
 namespace Femyou.internals {
 	internal class Callbacks : IDisposable {
-		private readonly ICallbacks _cb;
+		public readonly ICallbacks CallbacksImpl;
 
 		// ReSharper disable once PrivateFieldCanBeConvertedToLocalVariable
 		private readonly FMI2.fmi2CallbackFunctions _functions;
@@ -12,9 +12,9 @@ namespace Femyou.internals {
 		public readonly IntPtr Structure;
 		private GCHandle _handle;
 
-		public Callbacks(Instance instance, ICallbacks cb) {
+		public Callbacks(Instance instance, ICallbacks callbacks) {
 			_instance = instance;
-			_cb = cb;
+			CallbacksImpl = callbacks;
 			_handle = GCHandle.Alloc(this);
 			_functions = new FMI2.fmi2CallbackFunctions {
 				logger = LoggerCallback,
@@ -36,7 +36,7 @@ namespace Femyou.internals {
 		public static void LoggerCallback(IntPtr componentEnvironment, string instanceName, int status, string category,
 			string message) {
 			var self = (Callbacks) GCHandle.FromIntPtr(componentEnvironment).Target;
-			self._cb?.Logger(self._instance, (Status) status, category, message);
+			self.CallbacksImpl?.Logger(self._instance, (Status) status, category, message);
 		}
 
 		public static void StepFinishedCallback(IntPtr componentEnvironment, int status) { }

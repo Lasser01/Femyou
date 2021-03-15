@@ -1,3 +1,3 @@
 cmake -S Reference-FMUs -B bin
 cd bin
-make
+msbuild ALL_BUILD.vcxproj

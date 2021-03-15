@@ -42,3 +42,13 @@ while (h > 0 || Math.Abs(v) > 0)
 The [Bouncing Ball](https://github.com/modelica/Reference-FMUs/tree/master/BouncingBall) reference FMU visualized with GIF animation.
 
 ![BouncingBall](BouncingBall.gif?raw=true)
+
+
+## Troubleshooting
+Here are some mistakes I've made, maybe they can help you:
+
+### Unhandled exception. System.IO.FileNotFoundException: Could not find or load the native library: BouncingBall.fmu\binaries\win64\BouncingBall.dll
+This most likely because you build it for the wrong architecture, make sure that you build for your platform.
+
+### Couldn't load MOS files
+Make sure they are in your working directory (in this case it would be demos/BouncingBallGif/bin/Debug/net5.0/)

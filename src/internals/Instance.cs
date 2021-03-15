@@ -5,6 +5,10 @@ using Femyou.fmi;
 
 namespace Femyou.internals {
 	internal class Instance : IInstance {
+		public string Name { get; }
+		public double CurrentTime { get; private set; }
+		public double StopTime { get; private set; }
+
 		private readonly Callbacks _callbacks;
 		private readonly IntPtr _handle;
 		private readonly Library _library;
@@ -17,6 +21,7 @@ namespace Femyou.internals {
 			_model = model;
 			_callbacks = new Callbacks(this, cb);
 			CurrentTime = model.DefaultStartTime;
+			StopTime = model.DefaultStopTime;
 			_handle = library.fmi2Instantiate(
 				name,
 				instanceType,
@@ -30,8 +35,6 @@ namespace Femyou.internals {
 				throw new Exception("Cannot instanciate model");
 		}
 
-		public string Name { get; }
-		public double CurrentTime { get; private set; }
 
 		public double ReadReal(IVariable variable) {
 			return Read(variable, new double(), (a, b, c, d) => _library.fmi2GetReal(a, b, c, d));
@@ -45,43 +48,59 @@ namespace Femyou.internals {
 			return Read(variable, new FMI2.fmi2Boolean(), (a, b, c, d) => _library.fmi2GetBoolean(a, b, c, d)) ==
 			       FMI2.fmi2Boolean.fmi2True;
 		}
-		
+
 		public string ReadString(IVariable variable) {
 			return Marshalling.GetString(Read(variable, new IntPtr(),
 				(a, b, c, d) => _library.fmi2GetString(a, b, c, d)));
 		}
 
-		public void WriteReal((IVariable, double) variable) {
-			Write(variable, (a, b, c, d) => _library.fmi2SetReal(a, b, c, d));
+		public void WriteReal(IVariable variable, double value) {
+			Write((variable, value), (a, b, c, d) => _library.fmi2SetReal(a, b, c, d));
 		}
 
-		public void WriteInteger((IVariable, int) variable) {
-			Write(variable, (a, b, c, d) => _library.fmi2SetInteger(a, b, c, d));
+		public void WriteInteger(IVariable variable, int value) {
+			Write((variable, value), (a, b, c, d) => _library.fmi2SetInteger(a, b, c, d));
 		}
 
-		public void WriteBoolean((IVariable, bool) variable) {
-			Write((variable.Item1, variable.Item2 ? FMI2.fmi2Boolean.fmi2True : FMI2.fmi2Boolean.fmi2False),
+		public void WriteBoolean(IVariable variable, bool value) {
+			Write((variable, value ? FMI2.fmi2Boolean.fmi2True : FMI2.fmi2Boolean.fmi2False),
 				(a, b, c, d) => _library.fmi2SetBoolean(a, b, c, d));
 		}
 
-		public void WriteString((IVariable, string) variable) {
-			Write(variable, (a, b, c, d) => _library.fmi2SetString(a, b, c, d));
+		public void WriteString(IVariable variable, string value) {
+			Write((variable, value), (a, b, c, d) => _library.fmi2SetString(a, b, c, d));
 		}
-		
-		public void StartTime(double time) {
-			CurrentTime = time;
-			_library.fmi2SetupExperiment(_handle, FMI2.fmi2Boolean.fmi2True, _model.Tolerance, _model.DefaultStartTime,
-				FMI2.fmi2Boolean.fmi2True, _model.DefaultStopTime);
+
+		public void StartTime(double time = 0, double stopTime = 0) {
+			//TODO: Maybe give error?
+			if (_started) return;
+			CurrentTime = time == 0 ? _model.DefaultStartTime : time;
+			StopTime = stopTime == 0 ? _model.DefaultStopTime : stopTime;
+			_library.fmi2SetupExperiment(_handle, FMI2.fmi2Boolean.fmi2True, _model.Tolerance, CurrentTime,
+				FMI2.fmi2Boolean.fmi2True, StopTime);
 			_library.fmi2EnterInitializationMode(_handle);
 			_library.fmi2ExitInitializationMode(_handle);
 			_started = true;
 		}
 
 		public void AdvanceTime(double step) {
+			//TODO: Decide if we should force the user to call StartTime by throwing or calling it automatically and just add remark about it
+			if (!_started) StartTime();
 			if (step == 0.0)
 				return;
 			_library.fmi2DoStep(_handle, CurrentTime, step, FMI2.fmi2Boolean.fmi2True);
 			CurrentTime += step;
+		}
+
+		public void Simulate(double stepSize = 0.1, Action onStep = null) {
+			//TODO: Decide if we should force the user to call StartTime by throwing or calling it automatically and just add remark about it
+			if (!_started) StartTime();
+			while (CurrentTime < StopTime) {
+				AdvanceTime(stepSize);
+				onStep?.Invoke();
+			}
+
+			_callbacks.CallbacksImpl.Logger(this, Status.OK, "[Info]", "Reached the end of the simulation.");
 		}
 
 		public IEnumerable<double> ReadReal(IEnumerable<IVariable> variables) {
